@@ -3,24 +3,36 @@
 </template>
 <script lang="ts">
 import { defineComponent } from "vue";
-import { mapState } from "vuex";
+import { useStore } from "vuex";
 import io from "socket.io-client";
 
+interface ComponentData {
+  socket: SocketIOClientStatic | null;
+}
+
+// const userId = mapState(['userId'])
+
 export default defineComponent({
-  data() {
-    return {
-      io: io("http://localhost:3000/test", { transports: ["websocket"] })
-    };
-  },
-  mounted() {
-    // this.socket.addEventListener("message", function(event) {
-    //   console.log("Message from server ", event.data);
-    // });
-  },
-  computed: {
-    ...mapState({
-      userId: "userId"
-    })
+  setup() {
+    const store = useStore();
+    const socket = io(`http://localhost:3000/test?user=${store.state.userId}`, {
+      transports: ["websocket"]
+    });
+
+    let userSocketId = null;
+
+    socket.on("new connection", (context: string): void => {
+      console.log("new connection", context);
+    });
+
+    socket.on("new disconnection", (context: string): void => {
+      console.log("new disconnection", context);
+    });
+
+    socket.on("my id", (context: string): void => {
+      console.log("my id is", context);
+      userSocketId = context;
+    });
   }
 });
 </script>

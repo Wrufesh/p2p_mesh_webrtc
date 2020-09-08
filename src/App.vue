@@ -7,6 +7,17 @@
   </div>
 </template>
 
+<script>
+// import { provideStore } from "./composables/use-store";
+// import { defineComponent } from "vue";
+
+// export default defineComponent({
+//   setup(props, { root: { $store } }) {
+//     provideStore($store);
+//   }
+// });
+</script>
+
 <style lang="scss">
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;

@@ -167,4 +167,9 @@ export default defineComponent({
   height: calc(48px * 3);
   width: calc(64px * 3);
 }
+
+.peers > div > video {
+  height: calc(48px * 3);
+  width: calc(64px * 3);
+}
 </style>

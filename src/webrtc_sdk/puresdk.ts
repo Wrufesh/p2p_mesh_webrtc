@@ -217,7 +217,7 @@ export class WebRTCSDK implements WebRTC {
     try {
       this.connection.addIceCandidate(candidate);
     } catch (err) {
-      console.error(err)
+      console.error(err);
     }
   }
 
@@ -256,7 +256,6 @@ export class WebRTCSDK implements WebRTC {
   };
 
   onTrack = (event: RTCTrackEvent): void => {
-
     (document.getElementById(
       this.remoteStreamHtmlId
     ) as HTMLMediaElement).srcObject = event.streams[0];

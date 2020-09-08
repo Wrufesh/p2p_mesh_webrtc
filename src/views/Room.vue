@@ -9,14 +9,14 @@
       </button>
     </div>
     <div class="peers">
-      <div v-for="(peer, index) in peers" :key="`peer-${index}`">
+      <div v-for="(peer, index) in state.peers" :key="`peer-${index}`">
         <video :id="peer.remoteStreamHtmlId" autoplay></video>
       </div>
     </div>
   </div>
 </template>
 <script lang="ts">
-import { defineComponent, onMounted } from "vue";
+import { defineComponent, reactive, onMounted } from "vue";
 import { useStore } from "vuex";
 import io from "socket.io-client";
 import {
@@ -34,7 +34,13 @@ interface UserSocketInfo {
 
 export default defineComponent({
   setup() {
-    const peers: WebRTCSDK[] = [];
+    interface LocalState {
+      peers: WebRTCSDK[];
+    }
+
+    const state = reactive<LocalState>({
+      peers: []
+    });
 
     const store = useStore();
 
@@ -75,26 +81,27 @@ export default defineComponent({
           video: true
         });
 
-        peers.push(newWebRTC);
+        state.peers.push(newWebRTC);
       });
 
       socket.on("new disconnection", (context: UserSocketInfo): void => {
         console.log("new disconnection", context);
-        const deadPeer = peers.find((obj: WebRTCSDK) => {
+        const deadPeer = state.peers.find((obj: WebRTCSDK) => {
           return obj.peerId.includes(context.socketId);
         });
         if (deadPeer) {
-          peers.splice(peers.indexOf(deadPeer as WebRTCSDK), 1);
+          state.peers.splice(state.peers.indexOf(deadPeer as WebRTCSDK), 1);
         }
       });
 
-      socket.on("my id", (context: string): void => {
+      socket.on("my id", (context: UserSocketInfo): void => {
         console.log("my id is", context);
-        userSocketId = context;
+        userSocketId = context.socketId;
       });
 
       // Start WebRTC Signals
       socket.on("offer", (data: OfferSignal) => {
+        console.log("offer", data);
         const newWebRTC = new WebRTCSDK(
           data.callerUserId,
           data.calleeUserId,
@@ -109,11 +116,12 @@ export default defineComponent({
           video: true
         });
 
-        peers.push(newWebRTC);
+        state.peers.push(newWebRTC);
       });
 
       socket.on("answer", (data: AnswerSignal) => {
-        const answeringPeer = peers.find((obj: WebRTCSDK) => {
+        console.log("answer", data);
+        const answeringPeer = state.peers.find((obj: WebRTCSDK) => {
           return obj.peerId === data.peerId;
         });
 
@@ -123,7 +131,8 @@ export default defineComponent({
       });
 
       socket.on("ice", (data: ICESignal) => {
-        const ICETargetPeer = peers.find((obj: WebRTCSDK) => {
+        console.log("ice", data);
+        const ICETargetPeer = state.peers.find((obj: WebRTCSDK) => {
           return obj.peerId === data.peerId;
         });
         if (ICETargetPeer) {
@@ -134,18 +143,22 @@ export default defineComponent({
       });
 
       socket.on("hangup", (data: HangUpSignal) => {
-        const toBeDestroyedPeer = peers.find((obj: WebRTCSDK) => {
+        console.log("hangup", data);
+        const toBeDestroyedPeer = state.peers.find((obj: WebRTCSDK) => {
           return obj.peerId === data.peerId;
         });
         if (toBeDestroyedPeer) {
           toBeDestroyedPeer.closeRTPConnection();
-          peers.splice(peers.indexOf(toBeDestroyedPeer as WebRTCSDK), 1);
+          state.peers.splice(
+            state.peers.indexOf(toBeDestroyedPeer as WebRTCSDK),
+            1
+          );
         }
       });
       // End WebRTC Signals
     });
 
-    return { peers };
+    return { state };
   }
 });
 </script>

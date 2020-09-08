@@ -50,7 +50,11 @@ interface WebRTC {
   hangUpCall(): void;
 
   // Signalling related methods
-  sendSignal(type: string, signal: OfferSignal | AnswerSignal | ICESignal | HangUpSignal, target: string): void;
+  sendSignal(
+    type: string,
+    signal: OfferSignal | AnswerSignal | ICESignal | HangUpSignal,
+    target: string
+  ): void;
 
   handleOffer(signal: OfferSignal, mediaConstraints: MediaConstraint): void;
 
@@ -86,7 +90,7 @@ export class WebRTCSDK implements WebRTC {
   connection: RTCPeerConnection;
   localStream: MediaStream;
   remoteStreamHtmlId: string;
-  isCallerPeer: boolean | null;;
+  isCallerPeer: boolean | null;
 
   constructor(
     callerUserId: string,
@@ -106,9 +110,9 @@ export class WebRTCSDK implements WebRTC {
 
     this.socket = socket;
 
-    this.peerId = `${this.callerSocketId}-${this.calleeSocketId}`
+    this.peerId = `${this.callerSocketId}-${this.calleeSocketId}`;
 
-    this.remoteStreamHtmlId = `peer-video-${this.peerId}`
+    this.remoteStreamHtmlId = `peer-video-${this.peerId}`;
 
     this.connection = new RTCPeerConnection({
       iceServers: [
@@ -132,8 +136,6 @@ export class WebRTCSDK implements WebRTC {
   async startCall(mediaConstraints: MediaConstraint): Promise<boolean> {
     this.isCallerPeer = true;
     try {
-      
-
       this.localStream
         .getTracks()
         .forEach(track =>
@@ -155,29 +157,30 @@ export class WebRTCSDK implements WebRTC {
       {
         peerId: this.peerId
       },
-      this.isCallerPeer? this.calleeSocketId : this.callerSocketId
+      this.isCallerPeer ? this.calleeSocketId : this.callerSocketId
     );
   }
 
-  sendSignal(type: string, signal: OfferSignal | AnswerSignal | ICESignal | HangUpSignal, target: string) {
-    this.socket.emit('webrtc_signal', 
-    {
+  sendSignal(
+    type: string,
+    signal: OfferSignal | AnswerSignal | ICESignal | HangUpSignal,
+    target: string
+  ) {
+    this.socket.emit("webrtc_signal", {
       signal,
       target,
       type
-    }
-    )
+    });
   }
 
   async handleOffer(
     signal: OfferSignal,
     mediaConstraints: MediaConstraint
   ): Promise<boolean> {
-    this.isCallerPeer = false
+    this.isCallerPeer = false;
 
     try {
       await this.connection.setRemoteDescription(signal.sdp);
-      
 
       this.localStream
         .getTracks()
@@ -207,14 +210,14 @@ export class WebRTCSDK implements WebRTC {
   }
 
   handleAnswer(signal: AnswerSignal): void {
-    this.connection.setRemoteDescription(signal.sdp)
+    this.connection.setRemoteDescription(signal.sdp);
   }
 
   handleNewIceCandidate(candidate: RTCIceCandidate): void {
     try {
       this.connection.addIceCandidate(candidate);
     } catch (err) {
-      alert("Error handling incoming ice candidate");
+      console.error(err)
     }
   }
 
@@ -229,7 +232,7 @@ export class WebRTCSDK implements WebRTC {
           callerUserId: this.callerUserId,
           calleeUserId: this.calleeUserId,
           callerSocketId: this.callerSocketId,
-          calleeSocketId: this.callerSocketId,
+          calleeSocketId: this.calleeSocketId,
           sdp: offer
         },
         this.calleeSocketId
@@ -248,11 +251,12 @@ export class WebRTCSDK implements WebRTC {
         peerId: this.peerId,
         candidate: event.candidate
       },
-      this.isCallerPeer? this.calleeSocketId : this.callerSocketId
+      this.isCallerPeer ? this.calleeSocketId : this.callerSocketId
     );
   };
 
   onTrack = (event: RTCTrackEvent): void => {
+
     (document.getElementById(
       this.remoteStreamHtmlId
     ) as HTMLMediaElement).srcObject = event.streams[0];

@@ -2,28 +2,33 @@
 // https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Signaling_and_video_calling
 // This should work
 
+import SocketIOClient from "socket.io-client";
 interface MediaConstraint {
   audio: boolean;
   video: boolean;
 }
 
-interface InitSignal {
-  type: string;
-  userId: number;
-  roomId: string;
+interface OfferSignal {
+  callerUserId: string;
+  calleeUserId: string;
+  peerId: string;
+  sdp: RTCSessionDescription | RTCSessionDescriptionInit;
+}
+
+interface AnswerSignal {
+  callerUserId: string;
+  calleeUserId: string;
+  peerId: string;
   sdp: RTCSessionDescription | RTCSessionDescriptionInit;
 }
 
 interface ICESignal {
-  type: string;
-  roomId: string;
+  peerId: string;
   candidate: RTCIceCandidate | null;
 }
 
 interface HangUpSignal {
-  type: string;
-  userId: number;
-  roomId: string;
+  peerId: string;
 }
 
 // enum UserInitActionType {
@@ -44,9 +49,12 @@ interface WebRTC {
   hangUpCall(): void;
 
   // Signalling related methods
-  sendSignal(signal: InitSignal | ICESignal | HangUpSignal): void;
+  sendSignal(type: string, signal: OfferSignal | AnswerSignal | ICESignal | HangUpSignal, target: string): void;
 
-  handleOffer(signal: InitSignal, mediaConstraints: MediaConstraint): void;
+  handleOffer(signal: OfferSignal, mediaConstraints: MediaConstraint): void;
+
+  handleAnswer(signal: AnswerSignal): void;
+
   handleNewIceCandidate(candidate: RTCIceCandidate): void;
 
   // RTCPeerConnection event handlers
@@ -68,25 +76,39 @@ interface WebRTC {
 }
 
 export class WebRTCSDK implements WebRTC {
-  userId: number;
-  roomId: string;
+  callerUserId: string;
+  calleeUserId: string;
+  callerSocketId: string;
+  calleeSocketId: string;
+  peerId: string;
+  socket: SocketIOClient.Socket;
   connection: RTCPeerConnection;
-  wsCon: WebSocket;
-  localStreamHtmlId: string;
+  localStream: MediaStream;
   remoteStreamHtmlId: string;
+  isCallerPeer: boolean | null;;
 
   constructor(
-    userId: number,
-    roomId: string,
-    wsConnection: WebSocket,
-    localStreamHtmlId: string,
-    remoteStreamHtmlId: string
+    callerUserId: string,
+    calleeUserId: string,
+    callerSocketId: string,
+    calleeSocketId: string,
+    localStream: MediaStream,
+    socket: SocketIOClient.Socket
   ) {
-    this.userId = userId;
-    this.roomId = roomId;
-    this.wsCon = wsConnection;
-    this.localStreamHtmlId = localStreamHtmlId;
-    this.remoteStreamHtmlId = remoteStreamHtmlId;
+    this.isCallerPeer = null;
+    this.callerUserId = callerUserId;
+    this.calleeUserId = calleeUserId;
+    this.callerSocketId = callerSocketId;
+    this.calleeSocketId = calleeSocketId;
+
+    this.localStream = localStream;
+
+    this.socket = socket;
+
+    this.peerId = `${this.callerSocketId}-${this.calleeSocketId}`
+
+    this.remoteStreamHtmlId = `peer-video-${this.peerId}`
+
     this.connection = new RTCPeerConnection({
       iceServers: [
         {
@@ -107,20 +129,15 @@ export class WebRTCSDK implements WebRTC {
   }
 
   async startCall(mediaConstraints: MediaConstraint): Promise<boolean> {
+    this.isCallerPeer = true;
     try {
-      const localStream = await navigator.mediaDevices.getUserMedia(
-        mediaConstraints
-      );
+      
 
-      (document.getElementById(
-        this.localStreamHtmlId
-      ) as HTMLMediaElement).srcObject = localStream;
-
-      localStream
+      this.localStream
         .getTracks()
         .forEach(track =>
           mediaConstraints[track.kind as keyof MediaConstraint]
-            ? this.connection.addTrack(track, localStream)
+            ? this.connection.addTrack(track, this.localStream)
             : false
         );
     } catch (err) {
@@ -132,53 +149,64 @@ export class WebRTCSDK implements WebRTC {
 
   hangUpCall(): void {
     this.closeRTPConnection();
-    this.sendSignal({
-      userId: this.userId,
-      roomId: this.roomId,
-      type: "hang_up"
-    });
+    this.sendSignal(
+      "hangup",
+      {
+        peerId: this.peerId
+      },
+      this.isCallerPeer? this.calleeSocketId : this.callerSocketId
+    );
   }
 
-  sendSignal(signal: InitSignal | ICESignal | HangUpSignal) {
-    const msgJSON = JSON.stringify(signal);
-    this.wsCon.send(msgJSON);
+  sendSignal(type: string, signal: OfferSignal | AnswerSignal | ICESignal | HangUpSignal, target: string) {
+    this.socket.emit('webrtc_signal', 
+    {
+      signal,
+      target,
+      type
+    }
+    )
   }
 
   async handleOffer(
-    signal: InitSignal,
+    signal: OfferSignal,
     mediaConstraints: MediaConstraint
   ): Promise<boolean> {
+    this.isCallerPeer = false
+
     try {
       await this.connection.setRemoteDescription(signal.sdp);
-      const localStream = await navigator.mediaDevices.getUserMedia(
-        mediaConstraints
-      );
+      
 
-      (document.getElementById(
-        this.localStreamHtmlId
-      ) as HTMLMediaElement).srcObject = localStream;
-
-      localStream
+      this.localStream
         .getTracks()
         .forEach(track =>
           mediaConstraints[track.kind as keyof MediaConstraint]
-            ? this.connection.addTrack(track, localStream)
+            ? this.connection.addTrack(track, this.localStream)
             : false
         );
       const answer = await this.connection.createAnswer();
       await this.connection.setLocalDescription(answer);
 
-      this.sendSignal({
-        userId: this.userId,
-        roomId: signal.roomId,
-        type: "video_answer",
-        sdp: answer
-      });
+      this.sendSignal(
+        "answer",
+        {
+          callerUserId: this.callerUserId,
+          calleeUserId: this.calleeUserId,
+          peerId: this.peerId,
+          sdp: answer
+        },
+        this.callerSocketId
+      );
     } catch (err) {
       this.onMediaError(err);
     }
 
     return true;
+  }
+
+  handleAnswer(signal: AnswerSignal): void {
+    this.connection.setRemoteDescription(signal.sdp)
   }
 
   handleNewIceCandidate(candidate: RTCIceCandidate): void {
@@ -194,12 +222,16 @@ export class WebRTCSDK implements WebRTC {
       const offer = await this.connection.createOffer();
       await this.connection.setLocalDescription(offer);
 
-      this.sendSignal({
-        userId: this.userId,
-        roomId: this.roomId,
-        type: "video_offer",
-        sdp: offer
-      });
+      this.sendSignal(
+        "offer",
+        {
+          callerUserId: this.callerUserId,
+          calleeUserId: this.calleeUserId,
+          peerId: this.peerId,
+          sdp: offer
+        },
+        this.calleeSocketId
+      );
     } catch (err) {
         console.error(err) // eslint-disable-line
       // alert('Some error before sending offer')
@@ -208,11 +240,14 @@ export class WebRTCSDK implements WebRTC {
   };
 
   onIceCandidate = (event: RTCPeerConnectionIceEvent): void => {
-    this.sendSignal({
-      type: "new_ice_candidate",
-      roomId: this.roomId,
-      candidate: event.candidate
-    });
+    this.sendSignal(
+      "ice",
+      {
+        peerId: this.peerId,
+        candidate: event.candidate
+      },
+      this.isCallerPeer? this.calleeSocketId : this.callerSocketId
+    );
   };
 
   onTrack = (event: RTCTrackEvent): void => {
@@ -274,43 +309,43 @@ export class WebRTCSDK implements WebRTC {
   };
 
   closeRTPConnection(): void {
-    const remoteVideo = document.getElementById(
-      this.remoteStreamHtmlId
-    ) as HTMLMediaElement;
-    const localVideo = document.getElementById(
-      this.localStreamHtmlId
-    ) as HTMLMediaElement;
+    // const remoteVideo = document.getElementById(
+    //   this.remoteStreamHtmlId
+    // ) as HTMLMediaElement;
+    // const localVideo = document.getElementById(
+    //   this.localStreamHtmlId
+    // ) as HTMLMediaElement;
 
-    this.connection.ontrack = null;
+    // this.connection.ontrack = null;
 
-    // Commented coz depreciated
-    // this.connection.onremovetrack = null
-    // this.connection.onremovestream = null
+    // // Commented coz depreciated
+    // // this.connection.onremovetrack = null
+    // // this.connection.onremovestream = null
 
-    this.connection.onicecandidate = null;
-    this.connection.oniceconnectionstatechange = null;
-    this.connection.onsignalingstatechange = null;
-    this.connection.onicegatheringstatechange = null;
-    this.connection.onnegotiationneeded = null;
+    // this.connection.onicecandidate = null;
+    // this.connection.oniceconnectionstatechange = null;
+    // this.connection.onsignalingstatechange = null;
+    // this.connection.onicegatheringstatechange = null;
+    // this.connection.onnegotiationneeded = null;
 
-    if (remoteVideo.srcObject) {
-      (remoteVideo.srcObject as MediaStream)
-        .getTracks()
-        .forEach(track => track.stop());
-    }
+    // if (remoteVideo.srcObject) {
+    //   (remoteVideo.srcObject as MediaStream)
+    //     .getTracks()
+    //     .forEach(track => track.stop());
+    // }
 
-    if (localVideo.srcObject) {
-      (localVideo.srcObject as MediaStream)
-        .getTracks()
-        .forEach(track => track.stop());
-    }
+    // if (localVideo.srcObject) {
+    //   (localVideo.srcObject as MediaStream)
+    //     .getTracks()
+    //     .forEach(track => track.stop());
+    // }
 
     this.connection.close();
 
-    remoteVideo.removeAttribute("src");
-    remoteVideo.removeAttribute("srcObject");
-    localVideo.removeAttribute("src");
-    remoteVideo.removeAttribute("srcObject");
+    // remoteVideo.removeAttribute("src");
+    // remoteVideo.removeAttribute("srcObject");
+    // localVideo.removeAttribute("src");
+    // remoteVideo.removeAttribute("srcObject");
 
     // document.getElementById("hangup-button").disabled = true;
     // targetUsername = null;

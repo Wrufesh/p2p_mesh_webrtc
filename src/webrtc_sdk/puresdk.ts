@@ -8,26 +8,27 @@ interface MediaConstraint {
   video: boolean;
 }
 
-interface OfferSignal {
+export interface OfferSignal {
+  callerUserId: string;
+  calleeUserId: string;
+  callerSocketId: string;
+  calleeSocketId: string;
+  sdp: RTCSessionDescription | RTCSessionDescriptionInit;
+}
+
+export interface AnswerSignal {
   callerUserId: string;
   calleeUserId: string;
   peerId: string;
   sdp: RTCSessionDescription | RTCSessionDescriptionInit;
 }
 
-interface AnswerSignal {
-  callerUserId: string;
-  calleeUserId: string;
-  peerId: string;
-  sdp: RTCSessionDescription | RTCSessionDescriptionInit;
-}
-
-interface ICESignal {
+export interface ICESignal {
   peerId: string;
   candidate: RTCIceCandidate | null;
 }
 
-interface HangUpSignal {
+export interface HangUpSignal {
   peerId: string;
 }
 
@@ -227,7 +228,8 @@ export class WebRTCSDK implements WebRTC {
         {
           callerUserId: this.callerUserId,
           calleeUserId: this.calleeUserId,
-          peerId: this.peerId,
+          callerSocketId: this.callerSocketId,
+          calleeSocketId: this.callerSocketId,
           sdp: offer
         },
         this.calleeSocketId

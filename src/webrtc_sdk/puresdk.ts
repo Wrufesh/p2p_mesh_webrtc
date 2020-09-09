@@ -232,7 +232,7 @@ export class WebRTCSDK implements WebRTC {
 
   onNegotiationNeeded = async (): Promise<boolean> => {
     try {
-      const offer = await this.connection.createOffer({iceRestart: true});
+      const offer = await this.connection.createOffer({ iceRestart: true });
       await this.connection.setLocalDescription(offer);
 
       this.sendSignal(

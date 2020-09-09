@@ -3,6 +3,21 @@
 // This should work
 
 import SocketIOClient from "socket.io-client";
+
+const turnIP = "34.232.68.146:3478";
+const RTCPeerConfig = {
+  iceServers: [
+    {
+      urls: `stun:${turnIP}`
+    },
+    {
+      urls: `turn:${turnIP}`,
+      username: "meetu-turn",
+      credential: "K1u$aritZ"
+    }
+  ]
+};
+
 interface MediaConstraint {
   audio: boolean;
   video: boolean;
@@ -114,13 +129,7 @@ export class WebRTCSDK implements WebRTC {
 
     this.remoteStreamHtmlId = `peer-video-${this.peerId}`;
 
-    this.connection = new RTCPeerConnection({
-      iceServers: [
-        {
-          urls: "stun:stun.stunprotocol.org" // TODO: Use your own
-        }
-      ]
-    });
+    this.connection = new RTCPeerConnection(RTCPeerConfig);
 
     this.connection.onicecandidate = this.onIceCandidate;
     this.connection.ontrack = this.onTrack;

@@ -9,13 +9,13 @@
 
 <script>
 // import { provideStore } from "./composables/use-store";
-// import { defineComponent } from "vue";
+import { defineComponent } from "vue";
 
-// export default defineComponent({
-//   setup(props, { root: { $store } }) {
-//     provideStore($store);
-//   }
-// });
+export default defineComponent({
+  setup() {
+    document.title = "P2P WebRTC MESH";
+  }
+});
 </script>
 
 <style lang="scss">

@@ -232,7 +232,7 @@ export class WebRTCSDK implements WebRTC {
 
   onNegotiationNeeded = async (): Promise<boolean> => {
     try {
-      const offer = await this.connection.createOffer();
+      const offer = await this.connection.createOffer({iceRestart: true});
       await this.connection.setLocalDescription(offer);
 
       this.sendSignal(
@@ -285,7 +285,7 @@ export class WebRTCSDK implements WebRTC {
       case "failed":
       case "disconnected":
         console.log("ON ICE CONNECTION STATE CHANGE *******************");
-        this.closeRTPConnection();
+        // this.closeRTPConnection();
         break;
     }
   };

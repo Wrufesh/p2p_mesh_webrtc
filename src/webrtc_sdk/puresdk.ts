@@ -273,19 +273,20 @@ export class WebRTCSDK implements WebRTC {
     const trackList = event.streams[0].getTracks();
 
     if (trackList.length === 0) {
-      console.log("ON TRACKLIST LENGTH 0 *******************");
       this.closeRTPConnection();
     }
   };
 
   // State change handlers
   onIceConnectionStateChange = (): void => {
+    console.log(
+      'ICE candidate state changed to', 
+      this.connection.iceConnectionState
+    )
     switch (this.connection.iceConnectionState) {
       case "closed":
       case "failed":
       case "disconnected":
-        console.log("ON ICE CONNECTION STATE CHANGE *******************");
-        // this.closeRTPConnection();
         break;
     }
   };
@@ -293,9 +294,6 @@ export class WebRTCSDK implements WebRTC {
   onSignalingStateChange = (): void => {
     switch (this.connection.signalingState) {
       case "closed":
-        console.log(
-          "ON SIGNALLING STATE change STATE CHANGE *******************"
-        );
         this.closeRTPConnection();
         break;
     }
@@ -324,55 +322,14 @@ export class WebRTCSDK implements WebRTC {
         alert("Error opening your camera and/or microphone: " + err.message);
         break;
     }
-    console.log(
-      "BLACK SCREEN PREFIX MEDIA ERROR ---------------------------------------"
-    );
     this.closeRTPConnection();
   };
 
   closeRTPConnection(): void {
     console.log(
-      "I AM SURE BLACK SCREEN IS BECAUSE OF THIS **********************************"
+      'RTPConnection closed. Peer#ID',
+      this.peerId
     );
-    // const remoteVideo = document.getElementById(
-    //   this.remoteStreamHtmlId
-    // ) as HTMLMediaElement;
-    // const localVideo = document.getElementById(
-    //   this.localStreamHtmlId
-    // ) as HTMLMediaElement;
-
-    // this.connection.ontrack = null;
-
-    // // Commented coz depreciated
-    // // this.connection.onremovetrack = null
-    // // this.connection.onremovestream = null
-
-    // this.connection.onicecandidate = null;
-    // this.connection.oniceconnectionstatechange = null;
-    // this.connection.onsignalingstatechange = null;
-    // this.connection.onicegatheringstatechange = null;
-    // this.connection.onnegotiationneeded = null;
-
-    // if (remoteVideo.srcObject) {
-    //   (remoteVideo.srcObject as MediaStream)
-    //     .getTracks()
-    //     .forEach(track => track.stop());
-    // }
-
-    // if (localVideo.srcObject) {
-    //   (localVideo.srcObject as MediaStream)
-    //     .getTracks()
-    //     .forEach(track => track.stop());
-    // }
-
     this.connection.close();
-
-    // remoteVideo.removeAttribute("src");
-    // remoteVideo.removeAttribute("srcObject");
-    // localVideo.removeAttribute("src");
-    // remoteVideo.removeAttribute("srcObject");
-
-    // document.getElementById("hangup-button").disabled = true;
-    // targetUsername = null;
   }
 }

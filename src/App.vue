@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <div id="nav">
-      <h3>P2P WebRTC <span>M E S H</span> Room POC</h3>
+      <h3>P2P WebRTC <span>MESH</span> Room POC</h3>
     </div>
     <router-view />
   </div>

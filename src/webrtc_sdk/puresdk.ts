@@ -273,7 +273,7 @@ export class WebRTCSDK implements WebRTC {
     const trackList = event.streams[0].getTracks();
 
     if (trackList.length === 0) {
-      console.log('ON TRACKLIST LENGTH 0 *******************')
+      console.log("ON TRACKLIST LENGTH 0 *******************");
       this.closeRTPConnection();
     }
   };
@@ -284,7 +284,7 @@ export class WebRTCSDK implements WebRTC {
       case "closed":
       case "failed":
       case "disconnected":
-        console.log('ON ICE CONNECTION STATE CHANGE *******************')
+        console.log("ON ICE CONNECTION STATE CHANGE *******************");
         this.closeRTPConnection();
         break;
     }
@@ -293,7 +293,9 @@ export class WebRTCSDK implements WebRTC {
   onSignalingStateChange = (): void => {
     switch (this.connection.signalingState) {
       case "closed":
-        console.log('ON SIGNALLING STATE change STATE CHANGE *******************')
+        console.log(
+          "ON SIGNALLING STATE change STATE CHANGE *******************"
+        );
         this.closeRTPConnection();
         break;
     }
@@ -322,13 +324,16 @@ export class WebRTCSDK implements WebRTC {
         alert("Error opening your camera and/or microphone: " + err.message);
         break;
     }
-    console.log('BLACK SCREEN PREFIX MEDIA ERROR ---------------------------------------')
+    console.log(
+      "BLACK SCREEN PREFIX MEDIA ERROR ---------------------------------------"
+    );
     this.closeRTPConnection();
   };
 
   closeRTPConnection(): void {
-
-    console.log('I AM SURE BLACK SCREEN IS BECAUSE OF THIS **********************************')
+    console.log(
+      "I AM SURE BLACK SCREEN IS BECAUSE OF THIS **********************************"
+    );
     // const remoteVideo = document.getElementById(
     //   this.remoteStreamHtmlId
     // ) as HTMLMediaElement;

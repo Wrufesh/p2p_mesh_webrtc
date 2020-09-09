@@ -280,9 +280,9 @@ export class WebRTCSDK implements WebRTC {
   // State change handlers
   onIceConnectionStateChange = (): void => {
     console.log(
-      'ICE candidate state changed to', 
+      "ICE candidate state changed to",
       this.connection.iceConnectionState
-    )
+    );
     switch (this.connection.iceConnectionState) {
       case "closed":
       case "failed":
@@ -326,10 +326,7 @@ export class WebRTCSDK implements WebRTC {
   };
 
   closeRTPConnection(): void {
-    console.log(
-      'RTPConnection closed. Peer#ID',
-      this.peerId
-    );
+    console.log("RTPConnection closed. Peer#ID", this.peerId);
     this.connection.close();
   }
 }

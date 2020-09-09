@@ -1,8 +1,22 @@
 <template>
   <form @submit="login">
-    <label>User Id => </label>
-    <input v-model="userId" required />
-    <button type="submit">Proceed</button>
+    <div>
+      <div>
+        <label><small>USER ID</small></label>
+      </div>
+      <input v-model="userId" required />
+    </div>
+    <br />
+    <div>
+      <div>
+        <label><small>ROOM ID</small></label>
+      </div>
+      <input v-model="roomId" required />
+    </div>
+    <br />
+    <div>
+      <button type="submit">PROCEED</button>
+    </div>
   </form>
 </template>
 
@@ -14,15 +28,21 @@ export default defineComponent({
   name: "Home",
   data() {
     return {
-      userId: ""
+      userId: "",
+      roomId: ""
     };
   },
   methods: {
-    ...mapActions(["setUser"]),
+    ...mapActions(["setUserAndRoom"]),
     login() {
-      if (this.userId) {
-        this.setUser(this.userId);
-        this.$router.push("/room/test");
+      if (this.userId && this.roomId) {
+        this.setUserAndRoom({ userId: this.userId, roomId: this.roomId });
+        this.$router.push({
+          name: "Room",
+          params: {
+            room: this.roomId
+          }
+        });
       }
     }
   }

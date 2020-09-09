@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <div id="nav">
-      P2P Room POC
+      <h3>P2P WebRTC <span>M E S H</span> Room POC</h3>
     </div>
     <router-view />
   </div>
@@ -28,7 +28,8 @@
 }
 
 #nav {
-  padding: 30px;
+  padding-top: 30px;
+  padding-bottom: 15px;
 
   a {
     font-weight: bold;

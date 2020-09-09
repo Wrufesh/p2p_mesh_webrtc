@@ -22,7 +22,7 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  if (!store.state.userId && to.name !== "Login") {
+  if (!(store.state.userId && store.state.roomId) && to.name !== "Login") {
     next("/login");
   } else {
     next();

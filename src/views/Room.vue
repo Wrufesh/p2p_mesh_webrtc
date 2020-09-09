@@ -8,7 +8,7 @@
         Hang Up
       </button>
     </div>
-    <div class="peers">
+    <div class="peers" v-if="state.peers.length">
       <div v-for="(peer, index) in state.peers" :key="`peer-${index}`">
         <video :id="peer.remoteStreamHtmlId" autoplay></video>
       </div>
@@ -18,6 +18,9 @@
 <script lang="ts">
 import { defineComponent, reactive, onMounted } from "vue";
 import { useStore } from "vuex";
+
+import { useRoute } from "vue-router";
+
 import io from "socket.io-client";
 import {
   WebRTCSDK,
@@ -44,6 +47,8 @@ export default defineComponent({
 
     const store = useStore();
 
+    const route = useRoute();
+
     let localStream: MediaStream | null = null;
 
     onMounted(async () => {
@@ -57,7 +62,7 @@ export default defineComponent({
       ) as HTMLMediaElement).srcObject = localStream;
 
       const socket = io.connect(
-        `https://p2psignal.duckdns.org/test?user=${store.state.userId}`,
+        `https://p2psignal.duckdns.org/${route.params.room}?user=${store.state.userId}`,
         {
           transports: ["websocket"]
         }
@@ -171,5 +176,16 @@ export default defineComponent({
 .peers > div > video {
   height: calc(48px * 3);
   width: calc(64px * 3);
+}
+
+.peers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 15px;
+  padding-top: 10px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  background-color: rgb(231, 223, 223);
 }
 </style>

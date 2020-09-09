@@ -56,12 +56,19 @@ export default defineComponent({
         "local_video"
       ) as HTMLMediaElement).srcObject = localStream;
 
-      const socket = io(
-        `http://localhost:3000/test?user=${store.state.userId}`,
+      const socket = io.connect(
+        `http://p2psignal.duckdns.org/test?user=${store.state.userId}`,
         {
           transports: ["websocket"]
         }
       );
+
+      // const socket = io(
+      //   `http://192.168.1.129:3000/test?user=${store.state.userId}`,
+      //   {
+      //     transports: ["websocket"]
+      //   }
+      // );
 
       let userSocketId: string | null = null;
 

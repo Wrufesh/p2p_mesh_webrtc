@@ -52,10 +52,14 @@ export default defineComponent({
     let localStream: MediaStream | null = null;
 
     onMounted(async () => {
-      localStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: true
-      });
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: true
+        });
+      } catch (err) {
+        alert("Camera is being used by other application");
+      }
 
       (document.getElementById(
         "local_video"
@@ -95,6 +99,7 @@ export default defineComponent({
           return obj.peerId.includes(context.socketId);
         });
         if (deadPeer) {
+          // TODO also call hangup or close connection
           state.peers.splice(state.peers.indexOf(deadPeer as WebRTCSDK), 1);
         }
       });
@@ -153,6 +158,7 @@ export default defineComponent({
           return obj.peerId === data.peerId;
         });
         if (toBeDestroyedPeer) {
+          // TODO also call hangup or close connection
           toBeDestroyedPeer.closeRTPConnection();
           state.peers.splice(
             state.peers.indexOf(toBeDestroyedPeer as WebRTCSDK),

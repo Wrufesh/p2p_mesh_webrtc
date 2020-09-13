@@ -100,6 +100,7 @@ export default defineComponent({
         });
         if (deadPeer) {
           // TODO also call hangup or close connection
+          // Think about signal disconnected and peer active
           state.peers.splice(state.peers.indexOf(deadPeer as WebRTCSDK), 1);
         }
       });

@@ -1,0 +1,59 @@
+<template>
+  <div>
+    <div class="toggle-button">
+      <slot
+        name="button"
+        :handleToggle="toggleDropdownVisibility"
+        :hideMenu="hideMenu"
+      >
+        <button>Button</button>
+      </slot>
+
+      <div v-if="state.dropdownVisible" class="menu-box">
+        <slot name="content">
+          Menu Box Content
+        </slot>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+import { defineComponent, reactive } from "vue";
+export default defineComponent({
+  setup() {
+    const state = reactive({
+      dropdownVisible: false
+    });
+
+    const toggleDropdownVisibility = () => {
+      state.dropdownVisible = !state.dropdownVisible;
+    };
+
+    const hideMenu = () => {
+      state.dropdownVisible = false;
+    };
+
+    return {
+      state,
+      toggleDropdownVisibility,
+      hideMenu
+    };
+  }
+});
+</script>
+
+<style>
+.dropdown {
+  position: relative;
+}
+.toggle-button {
+}
+.menu-box {
+  position: absolute;
+  top: 10;
+  background-color: rgb(240, 240, 240);
+  box-shadow: 2px 2px 2px 2px rgb(201, 189, 189);
+  padding: 10px;
+}
+</style>

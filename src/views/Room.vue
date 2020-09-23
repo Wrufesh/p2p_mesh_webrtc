@@ -1,12 +1,74 @@
 <template>
   <div>
-    <div>
-      <video id="local_video" autoplay muted></video>
+    <div class="local-video-box">
+      <div class="video-container">
+        <video id="local_video" autoplay muted></video>
+        <div class="video-overlay"></div>
+      </div>
     </div>
-    <div>
-      <button id="hangup-button" disabled>
-        Hang Up
+    <div class="control-div">
+      <button class="icon-button" style="background-color: red;">
+        <icon-base
+          class="video-control-icon"
+          :path="icons.uniMinusSquare"
+        ></icon-base>
       </button>
+
+      <button
+        v-if="!state.audioMuted"
+        class="icon-button"
+        style="background-color: blue;"
+      >
+        <icon-base
+          class="video-control-icon"
+          :path="icons.uniMicrophone"
+        ></icon-base>
+      </button>
+      <button v-else class="icon-button" style="background-color: blue;">
+        <icon-base
+          class="video-control-icon"
+          :path="icons.uniMicrophoneSlash"
+        ></icon-base>
+      </button>
+      <button
+        v-if="!state.videoMuted"
+        class="icon-button"
+        style="background-color: blue;"
+      >
+        <icon-base
+          class="video-control-icon"
+          :path="icons.uniVideo"
+        ></icon-base>
+      </button>
+      <button v-else class="icon-button" style="background-color: blue;">
+        <icon-base
+          class="video-control-icon"
+          :path="icons.uniVideoSlash"
+        ></icon-base>
+      </button>
+
+      <button class="icon-button" style="background-color: blue;">
+        <icon-base
+          class="video-control-icon"
+          :path="icons.uniCameraChange"
+        ></icon-base>
+      </button>
+
+      <drop-down>
+        <template v-slot:button="{ handleToggle, hideMenu }">
+          <button
+            class="devices-button"
+            @click="handleToggle"
+            @blur="hideMenu"
+            style="background-color: green;"
+          >
+            Sources
+          </button>
+        </template>
+        <template v-slot:content>
+          <button>My Content</button>
+        </template>
+      </drop-down>
     </div>
     <div class="peers" v-if="state.peers.length">
       <div v-for="(peer, index) in state.peers" :key="`peer-${index}`">
@@ -20,6 +82,19 @@ import { defineComponent, reactive, onMounted } from "vue";
 import { useStore } from "vuex";
 
 import { useRoute } from "vue-router";
+
+import IconBase from "../components/IconBase.vue";
+
+import DropDown from "../components/DropDown.vue";
+
+import {
+  uniMicrophone,
+  uniMicrophoneSlash,
+  uniVideo,
+  uniVideoSlash,
+  uniCameraChange,
+  uniMinusSquare
+} from "../assets/icons";
 
 import io from "socket.io-client";
 import {
@@ -36,13 +111,21 @@ interface UserSocketInfo {
 }
 
 export default defineComponent({
+  components: {
+    IconBase,
+    DropDown
+  },
   setup() {
     interface LocalState {
       peers: WebRTCSDK[];
+      audioMuted: boolean;
+      videoMuted: boolean;
     }
 
     const state = reactive<LocalState>({
-      peers: []
+      peers: [],
+      audioMuted: false,
+      videoMuted: false
     });
 
     const store = useStore();
@@ -170,17 +253,26 @@ export default defineComponent({
       // End WebRTC Signals
     });
 
-    return { state };
+    const icons = {
+      uniMicrophone,
+      uniMicrophoneSlash,
+      uniVideo,
+      uniVideoSlash,
+      uniCameraChange,
+      uniMinusSquare
+    };
+
+    return { state, icons };
   }
 });
 </script>
 <style>
-#local_video {
+/* #local_video {
   height: calc(48px * 3);
   width: calc(64px * 3);
-}
+} */
 
-.peers > div > video {
+video {
   height: calc(48px * 3);
   width: calc(64px * 3);
 }
@@ -194,5 +286,54 @@ export default defineComponent({
   margin-bottom: 15px;
   padding-bottom: 10px;
   background-color: rgb(231, 223, 223);
+}
+
+.local-video-box,
+.control-div {
+  display: flex;
+  justify-content: center;
+  margin: 5px;
+}
+
+.video-container {
+  position: relative;
+  height: calc(48px * 3);
+  width: calc(64px * 3);
+}
+
+.video-overlay {
+  position: absolute;
+  display: flex;
+  flex-direction: column-reverse;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  right: 0;
+  buttom: 0;
+  left: 0;
+}
+
+.video-control-buttons {
+  display: flex;
+  background-color: rgb(97, 88, 88);
+  width: calc(64px * 6);
+  margin: 5px;
+  padding: 5px;
+}
+
+.video-control-icon {
+  height: 20px;
+  width: 20px;
+  color: #fff;
+}
+
+.devices-button {
+  font-size: 20px;
+  color: #fff;
+}
+
+.icon-button {
+  padding-left: 10px;
+  padding-right: 10px;
 }
 </style>

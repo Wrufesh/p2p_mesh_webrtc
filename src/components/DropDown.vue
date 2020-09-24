@@ -1,16 +1,12 @@
 <template>
   <div>
     <div class="toggle-button">
-      <slot
-        name="button"
-        :handleToggle="toggleDropdownVisibility"
-        :hideMenu="hideMenu"
-      >
+      <slot name="button" :handleToggle="toggleDropdownVisibility">
         <button>Button</button>
       </slot>
 
       <div v-if="state.dropdownVisible" class="menu-box">
-        <slot name="content">
+        <slot name="content" :hideMenu="hideMenu">
           Menu Box Content
         </slot>
       </div>
@@ -52,8 +48,9 @@ export default defineComponent({
 .menu-box {
   position: absolute;
   top: 10;
+  right: -30;
   background-color: rgb(240, 240, 240);
   box-shadow: 2px 2px 2px 2px rgb(201, 189, 189);
-  padding: 10px;
+  padding: 3px;
 }
 </style>

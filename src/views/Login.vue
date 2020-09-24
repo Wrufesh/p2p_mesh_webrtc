@@ -1,5 +1,5 @@
 <template>
-  <form @submit="login">
+  <form @submit="login" style="text-align: center;">
     <div>
       <div>
         <label><small>DISPLAY NAME</small></label>

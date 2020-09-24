@@ -18,6 +18,22 @@ const RTCPeerConfig = {
   ]
 };
 
+export interface IODevice {
+  deviceId: string;
+  label: string
+}
+export interface IODeviceCollection {
+  audioinput: IODevice[];
+  audiooutput: IODevice[];
+  videoinput: IODevice[];
+}
+
+export interface SelectedIODevice {
+  audioinput: string;
+  audiooutput: string;
+  videoinput: string;
+}
+
 interface MediaConstraint {
   audio: boolean;
   video: boolean;

@@ -11,6 +11,7 @@
         <icon-base
           class="video-control-icon"
           :path="icons.uniMinusSquare"
+          @click="methods.hangupCall()"
         ></icon-base>
       </button>
 
@@ -169,7 +170,7 @@
 import { defineComponent, reactive, onMounted } from "vue";
 import { useStore } from "vuex";
 
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 import IconBase from "../components/IconBase.vue";
 
@@ -241,6 +242,8 @@ export default defineComponent({
     const store = useStore();
 
     const route = useRoute();
+
+    const router = useRouter();
 
     const icons = {
       uniMicrophone,
@@ -430,6 +433,9 @@ export default defineComponent({
               state.selectedDevices.videoinput = newVideoDeviceId;
             });
         }
+      },
+      hangupCall: () => {
+        state.peers.forEach(peer => peer.closeRTPConnection());
       }
     };
 
@@ -474,6 +480,13 @@ export default defineComponent({
         }
       );
 
+      methods.hangupCall = () => {
+        state.peers.forEach(peer => peer.closeRTPConnection());
+        socket.close();
+        store.dispatch("clearUserAndRoom");
+        router.push("/login");
+      };
+
       let userSocketId: string | null = null;
 
       socket.on("new connection", (context: UserSocketInfo): void => {
@@ -501,8 +514,7 @@ export default defineComponent({
           return obj.peerId.includes(context.socketId);
         });
         if (deadPeer) {
-          // TODO also call hangup or close connection
-          // Think about signal disconnected and peer active
+          deadPeer.closeRTPConnection();
           state.peers.splice(state.peers.indexOf(deadPeer as WebRTCSDK), 1);
         }
       });

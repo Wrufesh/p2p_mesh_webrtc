@@ -502,6 +502,9 @@ export default defineComponent({
         state.peers.forEach(peer => peer.closeRTPConnection());
         socket.close();
         store.dispatch("clearUserAndRoom");
+        (localStream as MediaStream).getTracks().forEach(function(track) {
+          track.stop();
+        });
         router.push("/login");
       };
 

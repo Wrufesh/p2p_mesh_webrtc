@@ -82,8 +82,19 @@
           </button>
         </template>
         <template v-slot:content="{ hideMenu }">
-          <div @blur="hideMenu">
-            <div class="setting-menu-title">Device Settings</div>
+          <div class="device-setting">
+            <div class="toolbar">
+              <div class="toolbar-title">
+                Device Settings
+              </div>
+              <div>
+                <icon-base
+                  class="close-icon"
+                  :path="icons.uniTimesSquare"
+                  @click="hideMenu"
+                ></icon-base>
+              </div>
+            </div>
             <div class="list-title">Audio Input</div>
             <ul class="device-list">
               <li
@@ -101,6 +112,7 @@
                       methods.replaceTrack('audio');
                       state.selectedDevices.audioinput =
                         audioInputDevice.deviceId;
+                      hideMenu();
                     })
                 "
                 :class="{
@@ -129,6 +141,7 @@
                       methods.replaceTrack('video');
                       state.selectedDevices.videoinput =
                         videoInputDevice.deviceId;
+                      hideMenu();
                     })
                 "
                 :class="{
@@ -145,7 +158,10 @@
               <li
                 v-for="(audioOutputDevice, index) in state.devices.audiooutput"
                 :key="`audio-out-dev-${index}`"
-                @click="methods.changeAudioOutput(audioInputDevice.deviceId)"
+                @click="
+                  methods.changeAudioOutput(audioOutputDevice.deviceId),
+                    hideMenu()
+                "
                 :class="{
                   'selected-device':
                     audioOutputDevice.deviceId ===
@@ -183,7 +199,8 @@ import {
   uniVideoSlash,
   uniCameraChange,
   uniMinusSquare,
-  uniSlidersV
+  uniSlidersV,
+  uniTimesSquare
 } from "../assets/icons";
 
 import io from "socket.io-client";
@@ -252,7 +269,8 @@ export default defineComponent({
       uniVideoSlash,
       uniCameraChange,
       uniMinusSquare,
-      uniSlidersV
+      uniSlidersV,
+      uniTimesSquare
     };
 
     let localStream: MediaStream | null = null;
@@ -621,6 +639,7 @@ video {
   position: relative;
   height: calc(48px * 3);
   width: calc(64px * 3);
+  background-color: rgb(190, 190, 190);
 }
 
 .video-overlay {
@@ -660,7 +679,7 @@ video {
 }
 
 .list-title {
-  font-size: 1.25em;
+  font-size: 1.1em;
   padding: 4px 3px;
   background-color: rgb(26, 114, 70);
   color: #fff;
@@ -685,9 +704,27 @@ video {
   background-color: rgb(214, 210, 210);
 }
 
-.setting-menu-title {
+.toolbar {
   border: 1px solid gray;
   padding: 4px 3px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.toolbar-title {
   font-size: 1.5rem;
+}
+
+.device-setting {
+  width: 75%;
+  border: 1px solid gray;
+  background-color: rgb(247, 244, 244);
+}
+
+.close-icon {
+  height: 30px;
+  width: 30px;
+  color: red;
+  cursor: pointer;
 }
 </style>

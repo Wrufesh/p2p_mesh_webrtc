@@ -20,7 +20,7 @@ const RTCPeerConfig = {
 
 export interface IODevice {
   deviceId: string;
-  label: string
+  label: string;
 }
 export interface IODeviceCollection {
   audioinput: IODevice[];

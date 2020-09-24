@@ -10,27 +10,26 @@
   </svg>
 </template>
 <script lang="ts">
-
 import { defineComponent } from "vue";
 
 export default defineComponent({
   props: {
     iconName: {
       type: String,
-      default: ''
+      default: ""
     },
     iconColor: {
       type: String,
-      default: 'currentColor'
+      default: "currentColor"
     },
     path: {
       type: String,
-      default: ''
+      default: ""
     },
     viewBoxValue: {
       type: String,
-      default: '0,0,24,24'
+      default: "0,0,24,24"
     }
   }
-})
+});
 </script>

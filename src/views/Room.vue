@@ -63,6 +63,7 @@
         <icon-base
           class="video-control-icon"
           :path="icons.uniCameraChange"
+          @click="methods.toggleCamera()"
         ></icon-base>
       </button>
 
@@ -88,7 +89,18 @@
                 v-for="(audioInputDevice, index) in state.devices.audioinput"
                 :key="`audio-in-dev-${index}`"
                 @click="
-                  methods.setDevice(audioInputDevice.deviceId, 'audioinput')
+                  methods
+                    .changeStream({
+                      ...state.mediaConstraints,
+                      audio: {
+                        deviceId: audioInputDevice.deviceId
+                      }
+                    })
+                    .then(() => {
+                      methods.replaceTrack('audio');
+                      state.selectedDevices.audioinput =
+                        audioInputDevice.deviceId;
+                    })
                 "
                 :class="{
                   'selected-device':
@@ -105,7 +117,18 @@
                 v-for="(videoInputDevice, index) in state.devices.videoinput"
                 :key="`video-in-dev-${index}`"
                 @click="
-                  methods.setDevice(videoInputDevice.deviceId, 'videoinput')
+                  methods
+                    .changeStream({
+                      ...state.selectedDevices,
+                      video: {
+                        deviceId: videoInputDevice.deviceId
+                      }
+                    })
+                    .then(() => {
+                      methods.replaceTrack('video');
+                      state.selectedDevices.videoinput =
+                        videoInputDevice.deviceId;
+                    })
                 "
                 :class="{
                   'selected-device':
@@ -121,9 +144,7 @@
               <li
                 v-for="(audioOutputDevice, index) in state.devices.audiooutput"
                 :key="`audio-out-dev-${index}`"
-                @click="
-                  methods.setDevice(audioOutputDevice.deviceId, 'audiooutput')
-                "
+                @click="methods.changeAudioOutput(audioInputDevice.deviceId)"
                 :class="{
                   'selected-device':
                     audioOutputDevice.deviceId ===
@@ -192,6 +213,7 @@ export default defineComponent({
       videoMuted: boolean;
       devices: IODeviceCollection;
       selectedDevices: SelectedIODevice;
+      mediaConstraints: MediaStreamConstraints;
     }
 
     const state = reactive<LocalState>({
@@ -204,9 +226,13 @@ export default defineComponent({
         videoinput: []
       },
       selectedDevices: {
-        audioinput: "default",
+        audioinput: null,
         audiooutput: "default",
-        videoinput: "default"
+        videoinput: null
+      },
+      mediaConstraints: {
+        audio: true,
+        video: true
       }
     });
 
@@ -228,15 +254,214 @@ export default defineComponent({
 
     let localStream: MediaStream | null = null;
 
-    onMounted(async () => {
-      try {
-        localStream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: true
+    // START Methods
+
+    const methods = {
+      updateDevices: async function() {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+
+        const sortedDevices: IODeviceCollection = {
+          audioinput: [],
+          audiooutput: [],
+          videoinput: []
+        };
+
+        for (let i = 0; i < devices.length; i++) {
+          if (devices[i].kind === "audiooutput") {
+            sortedDevices[devices[i].kind].push({
+              label: devices[i].label,
+              deviceId: devices[i].deviceId
+            });
+          } else {
+            // Avoid default device id
+
+            if (devices[i].deviceId !== "default") {
+              sortedDevices[devices[i].kind].push({
+                label: devices[i].label,
+                deviceId: devices[i].deviceId
+              });
+            }
+          }
+        }
+
+        state.devices = sortedDevices;
+      },
+
+      getUserMedia: async (constraints: MediaStreamConstraints) => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          return {
+            stream,
+            hasVideo: true,
+            appliedContrains: constraints
+          };
+        } catch {
+          try {
+            console.log("Error: video device not found");
+            const stream = await navigator.mediaDevices.getUserMedia({
+              ...constraints,
+              video: false
+            } as MediaStreamConstraints);
+
+            return {
+              stream,
+              hasVideo: false,
+              appliedContrains: {
+                ...constraints,
+                video: false
+              }
+            };
+          } catch {
+            console.log("Error: media devices could not be found.");
+          }
+        }
+      },
+
+      replaceTrack: async (kind: string) => {
+        state.peers.forEach(async peer => {
+          const sender = peer.connection.getSenders().find(obj => {
+            return obj.track ? obj.track.kind === kind : false;
+          });
+          if (sender) {
+            if (kind === "audio") {
+              sender.replaceTrack(
+                (localStream as MediaStream).getAudioTracks()[0]
+              );
+            } else {
+              sender.replaceTrack(
+                (localStream as MediaStream).getVideoTracks()[0]
+              );
+            }
+          }
         });
-      } catch (err) {
-        alert("Camera is being used by other application");
+      },
+
+      changeAudioOutput: async (deviceId: string) => {
+        // try {
+        //   state.peers.forEach(peer => {
+        //     const remoteVideoElement = document.getElementById(
+        //       peer.remoteStreamHtmlId
+        //     );
+        //     (remoteVideoElement as HTMLAudioElement).setSinkId(deviceId);
+        //   });
+
+        //   state.selectedDevices.audiooutput = deviceId;
+        // } catch (err) {
+        //   console.log("Cannot sink audio output", err);
+        console.log("Unable to change device", deviceId);
+        // }
+      },
+
+      changeStream: async (constraints: MediaStreamConstraints) => {
+        const data = await methods.getUserMedia(constraints);
+
+        if (!data) {
+          console.log("Cannot get any stream");
+          return;
+        }
+
+        localStream = data.stream;
+
+        // Apply user mute settings to the new stream
+        localStream.getTracks().forEach(track => {
+          track.enabled = !state[
+            `${track.kind}Muted` as keyof LocalState
+          ] as boolean;
+        });
+
+        (document.getElementById(
+          "local_video"
+        ) as HTMLMediaElement).srcObject = localStream;
+
+        state.mediaConstraints = data.appliedContrains;
+      },
+
+      toggleMute: (type: string) => {
+        if (type == "audio") {
+          state.audioMuted = !state[`${type}Muted` as keyof LocalState];
+        } else {
+          state.videoMuted = !state[`${type}Muted` as keyof LocalState];
+        }
+
+        if (localStream) {
+          localStream.getTracks().forEach(track => {
+            if (track.kind === type) {
+              track.enabled = !state[
+                `${type}Muted` as keyof LocalState
+              ] as boolean;
+            }
+          });
+        }
+      },
+
+      toggleCamera: () => {
+        methods.updateDevices();
+        const videoInputDevices = state.devices.videoinput;
+        if (videoInputDevices.length) {
+          const selectedVideoDevice = videoInputDevices.find(o => {
+            return o.deviceId === state.selectedDevices.videoinput;
+          });
+
+          if (!selectedVideoDevice) {
+            console.log("Something is wrong. No selected video input device");
+            return;
+          }
+
+          const indexOfSelectedVideoDevice = videoInputDevices.indexOf(
+            selectedVideoDevice
+          );
+
+          const newVideoDeviceId =
+            videoInputDevices[
+              indexOfSelectedVideoDevice === videoInputDevices.length - 1
+                ? 0
+                : indexOfSelectedVideoDevice + 1
+            ].deviceId;
+
+          methods
+            .changeStream({
+              ...state.mediaConstraints,
+              video: {
+                deviceId: newVideoDeviceId
+              }
+            })
+            .then(() => {
+              methods.replaceTrack("video");
+              state.selectedDevices.videoinput = newVideoDeviceId;
+            });
+        }
       }
+    };
+
+    // End Methods
+
+    onMounted(async () => {
+      methods.updateDevices();
+
+      const data = await methods.getUserMedia({
+        ...state.mediaConstraints,
+        audio: state.devices.audioinput.length
+          ? ({
+              deviceId: state.devices.audioinput[0].deviceId
+            } as MediaTrackConstraints)
+          : true,
+        video: state.devices.videoinput.length
+          ? ({
+              deviceId: state.devices.videoinput[0].deviceId
+            } as MediaTrackConstraints)
+          : true
+      });
+
+      // Two of the defaults set here. One already set
+      state.selectedDevices.audioinput = state.devices.audioinput[0].deviceId;
+      state.selectedDevices.videoinput = state.devices.videoinput[0].deviceId;
+
+      if (!data) {
+        console.log("Cannot get media on mounted");
+        return;
+      }
+
+      localStream = data.stream;
 
       (document.getElementById(
         "local_video"
@@ -346,147 +571,6 @@ export default defineComponent({
       });
       // End WebRTC Signals
     });
-
-    // START Methods
-
-    const methods = {
-      updateDevices: async function() {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-
-        const sortedDevices: IODeviceCollection = {
-          audioinput: [],
-          audiooutput: [],
-          videoinput: []
-        };
-
-        for (let i = 0; i < devices.length; i++) {
-          sortedDevices[devices[i].kind].push({
-            label: devices[i].label,
-            deviceId: devices[i].deviceId
-          });
-        }
-
-        state.devices = sortedDevices;
-      },
-
-      getDeviceIdStream: async (
-        audioDeviceId: string | boolean,
-        videoDeviceId: string | boolean
-      ) => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: audioDeviceId
-              ? ({ deviceId: audioDeviceId } as MediaTrackConstraints)
-              : true,
-            video: videoDeviceId
-              ? ({ deviceId: videoDeviceId } as MediaTrackConstraints)
-              : true
-          });
-
-          return {
-            stream,
-            hasVideo: true
-          };
-        } catch {
-          try {
-            console.log("Error: video device not found");
-            const stream = await navigator.mediaDevices.getUserMedia({
-              audio: audioDeviceId
-                ? ({ deviceId: audioDeviceId } as MediaTrackConstraints)
-                : true,
-              video: false
-            });
-
-            return {
-              stream,
-              hasVideo: false
-            };
-          } catch {
-            console.log("Error: media devices could not be found.");
-          }
-        }
-      },
-
-      setDevice: async (deviceId: string, kind: string) => {
-        if (kind === "audiooutput") {
-          // try {
-          //   state.peers.forEach(peer => {
-          //     const remoteVideoElement = document.getElementById(
-          //       peer.remoteStreamHtmlId
-          //     );
-          //     (remoteVideoElement as HTMLAudioElement).setSinkId(deviceId);
-          //   });
-
-          //   state.selectedDevices.audiooutput = deviceId;
-          // } catch (err) {
-          //   console.log("Cannot sink audio output", err);
-          alert("Unable to change device");
-          // }
-        } else {
-          const data = await methods.getDeviceIdStream(
-            kind === "audioinput" ? deviceId : false,
-            kind === "videoinput" ? deviceId : false
-          );
-
-          if (!data) {
-            alert("Unable to change device");
-            return;
-          }
-
-          // if (!data.hasVideo) {
-          //   (document.getElementById(
-          //     "local_video"
-          //   ) as HTMLMediaElement).poster = noVideo;
-          // }
-
-          localStream = data.stream;
-
-          if (kind === "videoinput") {
-            state.peers.forEach(async peer => {
-              const sender = peer.connection.getSenders().find(obj => {
-                return obj.track ? obj.track.kind === "video" : false;
-              });
-              if (sender) {
-                sender.replaceTrack(data.stream.getVideoTracks()[0]);
-              }
-            });
-
-            state.selectedDevices.videoinput = deviceId;
-          } else if (kind === "audioinput") {
-            state.peers.forEach(async peer => {
-              const sender = peer.connection.getSenders().find(obj => {
-                return obj.track ? obj.track.kind === "audio" : false;
-              });
-              if (sender) {
-                sender.replaceTrack(data.stream.getAudioTracks()[0]);
-              }
-            });
-
-            state.selectedDevices.audioinput = deviceId;
-          }
-        }
-      },
-
-      toggleMute: (type: string) => {
-        if (type == "audio") {
-          state.audioMuted = !state[`${type}Muted` as keyof LocalState];
-        } else {
-          state.videoMuted = !state[`${type}Muted` as keyof LocalState];
-        }
-
-        if (localStream) {
-          localStream.getTracks().forEach(track => {
-            if (track.kind === type) {
-              track.enabled = !state[
-                `${type}Muted` as keyof LocalState
-              ] as boolean;
-            }
-          });
-        }
-      }
-    };
-
-    // End Methods
 
     return { state, icons, methods };
   }

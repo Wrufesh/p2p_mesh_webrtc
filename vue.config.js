@@ -1,5 +1,5 @@
 module.exports = {
   devServer: {
-    https: false
+    https: true
   }
 };

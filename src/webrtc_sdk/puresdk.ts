@@ -29,9 +29,9 @@ export interface IODeviceCollection {
 }
 
 export interface SelectedIODevice {
-  audioinput: string;
-  audiooutput: string;
-  videoinput: string;
+  audioinput: string | null;
+  audiooutput: string | null;
+  videoinput: string | null;
 }
 
 interface MediaConstraint {
